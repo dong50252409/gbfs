@@ -1,0 +1,14 @@
+{application, gbfs,
+ [{description, "A purely Elang implementation of the Greedy Best-First Search algorithm for pathfinding."},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {licenses, ["Apache 2.0"]},
+  {links, []}
+ ]}.
