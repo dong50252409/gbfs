@@ -3,7 +3,7 @@
 -export([search/4]).
 
 -type grid() :: {integer(), integer()}.
--type result() :: {max, Path :: [grid()]} | none| max_limited.
+-type result() :: {ok, Path :: [grid()]} | none| max_limited.
 -type max_limit() :: {max_limit, non_neg_integer()}.
 -type direction_num() :: {direction_num, 4|8}.
 -type option() :: max_limit()|direction_num().
@@ -21,19 +21,22 @@ search(StartGrid, EndGrid, ValidFun, Options) ->
     OpenGrids = insert(0, {StartGrid, []}, new()),
     VisitedGrids = #{StartGrid => []},
     DirectionNum = proplists:get_value(direction_num, Options, ?DIRECTION_NUM),
-    Directions = directions(DirectionNum),
+    DirectionsFun = direction_fun(DirectionNum),
     MaxLimit = proplists:get_value(max_limit, Options, ?MAX_LIMIT),
-    do_search(EndGrid, ValidFun, OpenGrids, VisitedGrids, Directions, MaxLimit).
+    do_search(EndGrid, ValidFun, OpenGrids, VisitedGrids, DirectionsFun, MaxLimit).
 %%======================================
 %% Internal Function
 %%======================================
-do_search(EndGrid, ValidFun, OpenGrids, VisitedGrids, Directions, MaxLimit) when MaxLimit > 0 ->
+do_search(EndGrid, ValidFun, OpenGrids, VisitedGrids, DirectionsFun, MaxLimit) when MaxLimit > 0 ->
     case take_min(OpenGrids) of
         {{EndGrid, Path}, _NewOpenGrids} ->
-            {max, erlang:tl(lists:reverse([EndGrid | Path]))};
+            {ok, erlang:tl(lists:reverse([EndGrid | Path]))};
         {{Grid, Path}, NewOpenGrids} ->
+            Directions = DirectionsFun(),
             {UpOpenGrids, UpVisitedGrids} = get_neighbours(EndGrid, ValidFun, Grid, [Grid | Path], NewOpenGrids, VisitedGrids, Directions),
-            do_search(EndGrid, ValidFun, UpOpenGrids, UpVisitedGrids, Directions, MaxLimit - 1)
+            do_search(EndGrid, ValidFun, UpOpenGrids, UpVisitedGrids, DirectionsFun, MaxLimit - 1);
+        empty ->
+            none
     end;
 do_search(_, _, _, _, _, _) ->
     max_limited.
@@ -83,9 +86,36 @@ merge_pairs([SubHeap]) ->
 merge_pairs([]) ->
     {}.
 
-directions(4) ->
-    [{1, 0}, {0, 1}, {-1, 0}, {0, -1}];
-directions(8) ->
+direction_fun(4) ->
+    fun quadrilateral_directions/0;
+direction_fun(8) ->
+    fun octagonal_directions/0.
+
+quadrilateral_directions() ->
+    [{1, 0}, {0, 1}, {-1, 0}, {0, -1}].
+
+octagonal_directions() ->
     [{1, 0}, {0, 1}, {-1, 0}, {0, -1}, {1, 1}, {-1, 1}, {1, -1}, {-1, -1}].
 
 
+% octagonal_directions({X1, X2}, {Y1, Y2}) ->
+%     if
+%         X1 > X2 ->
+%             if
+%                 Y1 > Y2 -> [{-1, -1}, {1, 1}, {1, 0}, {0, 1}, {1, -1}, {-1, 1}, {0, -1}, {-1, 0}];
+%                 Y1 < Y2 -> [{-1, 1}, {1, -1}, {0, -1}, {1, 0}, {-1, -1}, {1, 1}, {-1, 0}, {0, 1}];
+%                 true -> [{-1, 0}, {1, 0}, {1, -1}, {1, 1}, {0, -1}, {0, 1}, {-1, -1}, {-1, 1}]
+%             end;
+%         X1 < X2 ->
+%             if
+%                 Y1 > Y2 -> [{1, -1}, {-1, 1}, {-1, 0}, {0, 1}, {-1, -1}, {1, 1}, {0, -1}, {1, 0}];
+%                 Y1 < Y2 -> [{1, 1}, {-1, -1}, {0, -1}, {-1, 0}, {1, -1}, {-1, 1}, {1, 0}, {0, 1}];
+%                 true -> [{1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 1}]
+%             end;
+%         true ->
+%             if
+%                 Y1 > Y2 -> [{0, -1}, {0, 1}, {-1, 1}, {1, 1}, {-1, 0}, {1, 0}, {-1, -1}, {1, -1}];
+%                 Y1 < Y2 -> [{0, 1}, {0, -1}, {-1, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {1, 1}];
+%                 true -> [{0, 0}]
+%             end
+%     end.
