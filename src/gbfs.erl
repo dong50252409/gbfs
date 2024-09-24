@@ -47,8 +47,8 @@ get_neighbours({X2, Y2} = EndGrid, ValidFun, {X, Y} = CurGrid, Path, OpenGrids, 
     NGrid = {X1, Y1},
     case not maps:is_key(NGrid, VisitedGrids) andalso ValidFun(NGrid) of
         true ->
-            Source = erlang:abs(X1 - X2) + erlang:abs(Y1 - Y2),
-            UpOpenGrids = insert(Source, {NGrid, Path}, OpenGrids),
+            Score = erlang:abs(X1 - X2) + erlang:abs(Y1 - Y2),
+            UpOpenGrids = insert(Score, {NGrid, Path}, OpenGrids),
             UpVisitedGrids = VisitedGrids#{NGrid => []},
             get_neighbours(EndGrid, ValidFun, CurGrid, Path, UpOpenGrids, UpVisitedGrids, T);
         false ->
